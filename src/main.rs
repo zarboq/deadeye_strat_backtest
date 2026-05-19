@@ -4,8 +4,9 @@
 //! consensus drifts toward a *biased* estimate of the truth, then runs
 //! a handful of belief-driven strategies through `BacktestEngine`. Each
 //! strategy uses `KL(belief ‖ market)` as a pre-trade edge signal and
-//! reports two settlement metrics: the Deadeye position value (article
-//! §4) and the realized log-score against the final market quote.
+//! reports two settlement metrics: the Deadeye position value
+//! (`pdf(f_eff, x*) − pdf(f_orig, x*)`) and the realized log-score
+//! against the final market quote.
 //!
 //! Run with: `cargo run --release`
 
@@ -110,7 +111,7 @@ async fn main() -> Result<()> {
     println!("Reading:");
     println!("  · <KL>           = mean KL(belief ‖ market) across all events");
     println!("                     — the pre-trade Bayesian edge signal");
-    println!("  · Δpdf@x*        = realized Deadeye position value (article §4):");
+    println!("  · Δpdf@x*        = realized Deadeye position value:");
     println!("                     pdf(f_eff, x*) − pdf(f_orig, x*), per unit");
     println!("  · log-score@x*   = log p_belief(x*) − log p_market(x*)");
     println!();

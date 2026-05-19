@@ -39,7 +39,7 @@ pub struct BayesianEdgeStrategy {
     pub decisions: Vec<Decision>,
     /// `log p_belief(x*) − log p_market(x*)` at settlement.
     pub realized_log_score: Option<f64>,
-    /// Deadeye position value at settlement (article §4):
+    /// Deadeye position value at settlement:
     /// `pdf(f_eff, x*) − pdf(f_orig, x*)`, λ multipliers omitted.
     pub deadeye_payout: Option<f64>,
     /// `(pdf(f_orig, x*), pdf(f_eff, x*))` for narrative clarity.
@@ -120,8 +120,18 @@ impl Strategy for BayesianEdgeStrategy {
         let belief_var = self.params.belief_sigma.powi(2);
         let kl = kl_normal(self.params.belief_mu, belief_var, market_mu, market_var);
 
-        let should_trade =
-            matches!(event, MarketEvent::Trade { .. }) && kl > self.params.edge_threshold;
+        // Telescoping: only the position endpoints affect the settle
+        // payoff. If we're already positioned at our belief, retrading
+        // costs collateral without changing the payoff. Trade only when
+        // the belief itself has moved away from f_eff.
+        let already_positioned = matches!(self.f_eff,
+            Some((mu, var))
+                if (mu - self.params.belief_mu).abs() < 1e-9
+                && (var - belief_var).abs() < 1e-9);
+
+        let should_trade = matches!(event, MarketEvent::Trade { .. })
+            && !already_positioned
+            && kl > self.params.edge_threshold;
 
         self.decisions.push(Decision {
             event_idx: idx,
